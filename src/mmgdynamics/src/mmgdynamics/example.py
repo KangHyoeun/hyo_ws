@@ -56,7 +56,7 @@ vessel = Vessel(**cvs.kvlcc2_l64)
 iters = 3000
 def test_turning_maneuver():
     s = turning_maneuver(KVLCC2Inits.l_64, vessel, iters, "starboard",maxdeg=35, water_depth=None)
-    p = turning_maneuver(KVLCC2Inits.l_64, vessel, iters, "starboard",maxdeg=35, water_depth=25)
+    p = turning_maneuver(KVLCC2Inits.l_64, vessel, iters, "port",maxdeg=35, water_depth=None)
     plot_trajecory([s,p], vessel)
     plot_r([s,p])
 

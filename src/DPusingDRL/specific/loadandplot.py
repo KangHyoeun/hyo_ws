@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 
+from wptEnv import ShipEnv
 from customEnv import VesselEnv
 
 # 초기 설정
@@ -47,45 +48,43 @@ ivs = KVLCC2Inits.l_64
 
 # 초기 상태 정의
 initial_state = np.array([ivs.u, ivs.v, ivs.r])
-target_position = np.array([50, -50])
+print("Initial state set.")
 
-# 환경 생성
-def make_env(env_index):
-    def _init():
-        env = VesselEnv(vessel, initial_state, dT=0.1, target_position=target_position, render_mode='human', max_steps=200, slow_down_distance=10.0)
-        env = Monitor(env, f"./logs/env_{env_index}")
-        env.env_index = env_index
-        return env
-    return _init
+# 경유점 정의
+# target_position = np.array([250, 250])
+# print(f"Target position set: {target_position}")
 
-# 환경 인스턴스 리스트 생성
-num_envs = 4
-envs = [make_env(i) for i in range(num_envs)]
+waypoints = [
+    np.array([250, 250])
+]
+print("Waypoints set.")
 
-# 벡터화된 환경 생성
-vec_env = DummyVecEnv(envs)
+# 환경 생성 1
+
+# env = VesselEnv(vessel, initial_state, dT=0.1, target_position=target_position, render_mode='human', max_steps=2000)
+env = ShipEnv(vessel, initial_state, dT=0.1, waypoints=waypoints, render_mode='human', max_steps=2000)
+env = Monitor(env, f"./logs/")
 
 # PPO 모델 생성
-model = PPO("MlpPolicy", vec_env, verbose=1)
+model = PPO("MlpPolicy", env, verbose=1)
 print("Model created.")
 
 # 모델 로드
-model = PPO.load("ppo_vessel_model")
-print("Model loaded.")
+model = PPO.load("logs/real/best_model")
+print("Best Model loaded.")
 
-obs = vec_env.reset()
-done = [False] * num_envs
+obs, info = env.reset()
+done = False
 
-max_timesteps = 300  # 최대 타임스텝 수
+max_timesteps = 10000  # 최대 타임스텝 수
 current_timesteps = 0
 
-while not all(done) and current_timesteps < max_timesteps:
+while not done and current_timesteps < max_timesteps:
     action, _states = model.predict(obs)
-    obs, rewards, dones, info = vec_env.step(action)
-    done = dones
+    obs, rews, terms, truns, info = env.step(action)
+    done = terms or truns
     current_timesteps += 1
-    for i, env in enumerate(vec_env.envs):
-        env.unwrapped.render(render_mode='human', save_path='./plots', env_index=i)
+    env.render()
 
 if current_timesteps >= max_timesteps:
     print("Reached maximum timesteps.")
