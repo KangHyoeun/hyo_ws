@@ -141,67 +141,6 @@ node = maneuverNode(vessel, initial_state, dT, waypoints, max_steps)
 # Run simulation
 history = node.update(Kp_psi, Kd_psi, Kp_u, Kd_u)
 
-import numpy as np
-from scipy.optimize import curve_fit
-import matplotlib.pyplot as plt
-
-# 시뮬레이션 결과에서 시간, 조타각, 요각 데이터 수집
-time = np.arange(0, dT * max_steps, dT)
-rudder_angles = np.array(history['rudder'])
-yaw_angles = np.array(history['heading'])
-nps_data = np.array(history['nps'])
-surge_speed = np.array(history['surge_speed'])
-
-# Nomoto 1차 모델 함수
-def nomoto_model(t, K, T):
-    return K * rudder_angles * (1 - np.exp(-t / T))
-
-# 초기 추정값 설정
-initial_guess = [1.0, 10.0]  # 예시 값
-
-# 최적화 함수 사용하여 K와 T 추정
-params, covariance = curve_fit(nomoto_model, time, yaw_angles, p0=initial_guess)
-K, T = params
-
-print(f"추정된 K 값: {K}")
-print(f"추정된 T 값: {T}")
-
-# 추정된 파라미터로 모델 응답 플롯
-plt.figure()
-plt.plot(time, yaw_angles, 'o', label='실험 데이터')
-plt.plot(time, nomoto_model(time, K, T), '-', label='Nomoto 모델')
-plt.xlabel('시간 (초)')
-plt.ylabel('요각 (rad)')
-plt.legend()
-plt.show()
-
-# 속도 모델 정의
-def speed_model(t, K_u, T_u):
-    input_mean = np.mean(nps_data)  # 평균 nps 값 사용
-    return K_u * input_mean * (1 - np.exp(-t / T_u))
-
-# 초기 추정값 설정
-initial_guess = [0.1, 10.0]  # 예시 값으로 초기 추정값 설정
-
-# 최적화 함수 사용하여 K_u와 T_u 추정
-params, covariance = curve_fit(speed_model, time, surge_speed, p0=initial_guess)
-K_u, T_u = params
-
-print(f"추정된 K_u 값: {K_u}")
-print(f"추정된 T_u 값: {T_u}")
-
-# 추정된 파라미터로 모델 응답 계산
-model_response = speed_model(time, K_u, T_u)
-
-# 데이터 시각화
-plt.figure()
-plt.plot(time, surge_speed, 'o', label='실험 데이터')
-plt.plot(time, model_response, '-', label='속도 모델')
-plt.xlabel('시간 (초)')
-plt.ylabel('전진 속도 (m/s)')
-plt.legend()
-plt.show()
-
 # Plotting results
 plt.figure(figsize=(5, 8))
 gs = gridspec.GridSpec(3, 2)
